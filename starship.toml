@@ -1,0 +1,47 @@
+# Two-line prompt: user@host working-directory [git] [language]
+add_newline = true
+format = """$username$hostname$directory$git_branch$git_status$python$nodejs$golang$line_break$character"""
+
+[username]
+show_always = true
+style_user = "bold green"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+style = "bold green"
+format = "[@$hostname]($style) "
+
+[directory]
+style = "bold blue"
+format = "[$path]($style) "
+truncation_length = 0
+truncate_to_repo = false
+
+[git_branch]
+symbol = " "
+style = "bold purple"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "bold yellow"
+format = "([$all_status$ahead_behind]($style) )"
+
+[python]
+symbol = "Py "
+style = "bold green"
+format = "[$symbol$version]($style) "
+
+[nodejs]
+symbol = "Node "
+style = "bold green"
+format = "[$symbol$version]($style) "
+
+[golang]
+symbol = "Go "
+style = "bold cyan"
+format = "[$symbol$version]($style) "
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
