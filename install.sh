@@ -42,6 +42,42 @@ backup_and_install "$SCRIPT_DIR/starship.toml" "$HOME/.config/starship.toml"
 backup_and_install "$SCRIPT_DIR/zsh-extra.zsh" "$HOME/.config/zsh-extra.zsh"
 backup_and_install "$SCRIPT_DIR/tmux.conf" "$HOME/.tmux.conf"
 
+# Validate before installing Claude files; never replace unrelated settings.
+CLAUDE_DIR="$HOME/.claude"
+CLAUDE_SETTINGS="$CLAUDE_DIR/settings.json"
+mkdir -p "$CLAUDE_DIR"
+if [[ -e "$CLAUDE_SETTINGS" || -L "$CLAUDE_SETTINGS" ]]; then
+  jq -e -s 'length == 1 and (.[0] | type == "object")' "$CLAUDE_SETTINGS" >/dev/null
+fi
+CLAUDE_TEMP=$(mktemp "$CLAUDE_DIR/.settings.json.XXXXXX")
+trap 'rm -f "$CLAUDE_TEMP"' EXIT
+if [[ -e "$CLAUDE_SETTINGS" ]]; then
+  jq --slurpfile managed "$SCRIPT_DIR/claude/settings.json" \
+    '.statusLine = $managed[0].statusLine' "$CLAUDE_SETTINGS" > "$CLAUDE_TEMP"
+else
+  jq '{statusLine}' "$SCRIPT_DIR/claude/settings.json" > "$CLAUDE_TEMP"
+fi
+backup_and_install "$SCRIPT_DIR/claude/statusline.sh" "$CLAUDE_DIR/statusline.sh"
+chmod +x "$CLAUDE_DIR/statusline.sh"
+if [[ -e "$CLAUDE_SETTINGS" ]] && \
+  jq -e --slurpfile merged "$CLAUDE_TEMP" '. == $merged[0]' "$CLAUDE_SETTINGS" >/dev/null; then
+  echo "==> Already current: $CLAUDE_SETTINGS"
+else
+  if [[ -e "$CLAUDE_SETTINGS" ]]; then
+    cp -p "$CLAUDE_SETTINGS" "$BACKUP_DIR/claude-settings.json"
+    chmod 600 "$BACKUP_DIR/claude-settings.json"
+  fi
+  # Write through an existing symlink rather than replacing the link.
+  if [[ -e "$CLAUDE_SETTINGS" ]]; then
+    cat "$CLAUDE_TEMP" > "$CLAUDE_SETTINGS"
+  else
+    mv "$CLAUDE_TEMP" "$CLAUDE_SETTINGS"
+  fi
+  echo "==> Merged statusLine: $CLAUDE_SETTINGS"
+fi
+rm -f "$CLAUDE_TEMP"
+trap - EXIT
+
 ZSHRC="$HOME/.zshrc"
 START_MARKER='# >>> mac-terminal-kit >>>'
 END_MARKER='# <<< mac-terminal-kit <<<' 

@@ -1,7 +1,7 @@
 # macOS Terminal Kit
 
 Recreate a zsh-based macOS Terminal development environment on another Mac.
-The files are **flat**, so they can be uploaded to **GitHub Gist** together.
+Keep the directory structure when cloning or downloading this repository (including `claude/`).
 
 ## Included
 
@@ -11,12 +11,14 @@ The files are **flat**, so they can be uploaded to **GitHub Gist** together.
 | `install.sh` | Installs dependencies and configurations; backs up existing files |
 | `starship.toml` | Two-line prompt, always show user@host and full directory |
 | `zsh-extra.zsh` | zsh completions, suggestions, highlighting, fzf, zoxide, aliases |
+| `claude/statusline.sh` | Claude Code two-line status line |
+| `claude/settings.json` | Only the managed `statusLine` setting |
 | `tmux.conf` | Mouse, menu (`Ctrl-B` then `m`), splits and clipboard copy |
 
 ## Install
 
 1. Install [Homebrew](https://brew.sh/) if needed.
-2. Download or clone these files into the **same local directory**.
+2. Download or clone these files into the **same local directory**, preserving subdirectories.
 3. From that directory run:
 
    ```bash
@@ -50,16 +52,39 @@ The installer does not overwrite `.zshrc`; it appends **one** source block, pres
 - `cat`: bat alias; use `/bin/cat` for standard behavior
 - `z <fragment>` / `zi`: zoxide directory navigation
 
-## Add files to GitHub Gist
+## Claude Code status line
 
-Gists are flat collections of files (unlike regular GitHub repositories). With GitHub CLI (`gh`) installed and authenticated, in the kit directory:
+Install Claude Code separately. `bash install.sh` installs `jq`, copies the script to
+`~/.claude/statusline.sh`, and merges only `statusLine` into `~/.claude/settings.json`
+using `jq`. Other settings are preserved. Invalid JSON or a non-object settings file
+stops the Claude setup. Existing changed files are backed up under
+`~/.mac-terminal-kit-backups/<timestamp>-<pid>/` (`statusline.sh` and
+`claude-settings.json`). Backups can contain private settings; keep them local.
+Unchanged Claude settings are not rewritten or backed up on repeat runs.
+
+Restart Claude Code after installation. The first line shows model, effort (when
+available), directory and Git branch; the second shows context usage and available
+5-hour / 7-day quota remaining. Missing context is `--%`; unavailable branch and
+quota segments are omitted. Detached HEAD shows a short commit ID.
+
+The layout uses tmux pane width, terminal width, then `COLUMNS` (default 120).
+Widths below 70 use compact mode; below 45 use mini mode. Long directory and branch
+names are shortened. `STATUSLINE_COLS=80` overrides width;
+`STATUSLINE_NERD_FONT=0` disables icons. Very narrow panes or long model names may
+still wrap; resize the pane as needed. Homebrew `jq` is supported at both
+`/opt/homebrew/bin` and `/usr/local/bin` when absent from the inherited PATH.
+
+Quick check (expect two output lines):
 
 ```bash
-gh auth login
-gh gist create --desc 'macOS terminal development setup' README.md Brewfile install.sh starship.toml zsh-extra.zsh tmux.conf
+printf '%s' '{"model":{"display_name":"Claude"},"context_window":{"used_percentage":42}}' | STATUSLINE_COLS=80 bash ~/.claude/statusline.sh
+printf '{}' | bash ~/.claude/statusline.sh
 ```
 
-By default, this creates an unlisted (secret) Gist, **not** an access-controlled private repository; anyone with its URL may view it. Add `--public` only if you want it publicly discoverable. Gist IDs and URLs are returned by `gh` after successful creation. `gh gist clone <GIST_ID>` on another Mac, then run `bash install.sh` in the cloned directory. You can also keep this kit as a conventional GitHub repository.
+In tmux, repeat without `STATUSLINE_COLS` at different pane widths and confirm
+Nerd Font icons render correctly. See [the specification](docs/CLAUDE-STATUSLINE.md)
+for validation and restore details. Gists cannot preserve this directory structure;
+use a repository clone or an archive for installation.
 
 ## Limits
 
